@@ -1,7 +1,10 @@
-import asyncio,os
+import asyncio, os
 import artosyntools
+import json
+
 
 class close_cb(object):
+
     def __init__(self):
         self.completed_num = 0
 
@@ -16,12 +19,19 @@ class close_cb(object):
                 asyncio.create_task(self.scan.stop_scan(True))
 
 
+def getjson(file):
+    with open(file) as f:
+        return json.load(f)
+
+
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     ret = None
 
-    configs = [{'username': 'root', 'password': 'artosyn'}]
+    js = getjson('tests/cfg.json')
+
+    configs = artosyntools.get_user_pass(js)
 
     ips = ["192.168.10.{}".format(i) for i in range(1, 255)]
     ips += ["192.168.1.{}".format(i) for i in range(1, 255)]

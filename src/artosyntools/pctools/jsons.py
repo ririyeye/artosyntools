@@ -2,11 +2,12 @@ import os
 import json
 
 
-def get_json_cfg(filename):
-    p0 = os.path.realpath(__file__)
-    cfgfilename = os.path.join(os.path.dirname(p0), filename)
-    with open(cfgfilename) as f:
-        return json.load(f)
+def get_user_pass(js: json) -> list[dict]:
+    configs = []
+    lgs = js['p301d']['login']
+    for lg in lgs:
+        configs += [{'username': lg[0], 'password': lg[1]}]
+    return configs
 
 
 def make_init_json(filename):

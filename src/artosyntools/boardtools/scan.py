@@ -1,12 +1,8 @@
 import asyncio
-from random import SystemRandom
 import asyncssh
 from typing import List
 from socket import error as socket_error
 import errno
-from datetime import datetime, timedelta
-import os
-import async_timeout
 
 
 class ssh_scanner(object):
@@ -30,9 +26,8 @@ class ssh_scanner(object):
         self.output = []
 
     async def trysshconnect(self, ip, port, config: dict, timeoutpoint):
-
         try:
-            async with async_timeout.timeout_at(timeoutpoint) as cm:
+            async with asyncio.timeout_at(timeoutpoint) as cm:
                 async with asyncssh.connect(host=ip,
                                             port=port,
                                             username=config['username'],
@@ -55,6 +50,8 @@ class ssh_scanner(object):
             pass
         except ConnectionResetError as e3:
             print("ConnectionResetError")
+        except asyncssh.PermissionDenied as e4:
+            pass
 
     async def tcp_connect(self, ip, port):
         try:
@@ -74,7 +71,7 @@ class ssh_scanner(object):
         timoutpoint = self.loop.time() + self.timeout
 
         try:
-            async with async_timeout.timeout_at(timoutpoint):
+            async with asyncio.timeout_at(timoutpoint):
                 ret = await self.tcp_connect(ip, port)
                 if not ret:
                     return

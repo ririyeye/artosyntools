@@ -25,7 +25,7 @@ setuptools.setup(
         "Operating System :: OS Independent"
     ],
     keywords='python asyncio artosyn',
-    python_requires='>=3.9',
+    python_requires='>=3.11',
     zip_safe=False,
     install_requires=[
         "asyncio",
