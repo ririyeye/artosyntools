@@ -47,7 +47,6 @@ class savehelper(object):
         self.f = in_f
         self.q = asyncio.Queue(maxsize=100)
         self.stask = asyncio.create_task(self.savetask())
-        self.runflg = True
 
     async def savetask(self):
         while True:
