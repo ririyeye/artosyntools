@@ -2,6 +2,8 @@ import asyncssh
 import aiohttp
 import random
 from aiohttp import web
+from .execline import *
+from ..comms import *
 
 class httpuls(object):
 
@@ -41,3 +43,16 @@ class httpuls(object):
         result = await self.conn.run(cmd)
         await self.site.stop()
         await self.runner.shutdown()
+
+
+
+
+async def httpulfile(conn: asyncssh.SSHClientConnection, localfile: str, remotefile: str):
+    localmd5 = get_file_md5(localfile)
+    h = httpuls(conn, localfile, remotefile)
+    await h.tryupload()
+    ret = await execlines(conn, "md5sum " + remotefile)
+    getmd5 = ret.split(' ')[0]
+    if localmd5 == getmd5:
+        return True
+    return False

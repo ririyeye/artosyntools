@@ -3,13 +3,14 @@ import asyncssh
 from typing import List
 from socket import error as socket_error
 import errno
+from .execline import *
 
 
 class ssh_scanner(object):
 
     def __init__(self, ips, ports, configs, timeout, callback=None, loopflg=False) -> None:
         """
-        @type callback: function(string, int, dict)
+        @type callback: function(string, int, dict, string, bool)
         """
         self.ips = ips
         self.ports = ports
@@ -35,11 +36,12 @@ class ssh_scanner(object):
                                             known_hosts=None,
                                             config=None,
                                             server_host_key_algs=['ssh-rsa']) as conn:
-
+                    sn = await getsn(conn)
+                    normalsta = await is_normal_sta(conn)
                     if self.debugflg:
-                        print("{}:{} ssh Connected".format(ip, port))
+                        print("{}:{} ssh Connected sn={}".format(ip, port, sn))
                     if self.callback:
-                        self.callback(ip, port, config)
+                        self.callback(ip, port, config, sn, normalsta)
                     else:
                         self.output.append((ip, port, config))
 

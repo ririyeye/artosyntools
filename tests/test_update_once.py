@@ -2,21 +2,41 @@ import asyncio, os
 import artosyntools
 import json
 
+testfile = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
 
-class close_cb(object):
+
+class update_exec(object):
 
     def __init__(self):
-        self.completed_num = 0
+        self.succ_sn_list = []
+        self.lock_sn_list = []
 
     def set_scan_obj(self, scan: artosyntools.ssh_scanner):
         self.scan = scan
 
+    def update_cb(self, ip, port, config, sn, sta):
+        print("update cb {},{},{}-{},sn={},sta = {}".format(ip, port, config['username'], config['password'], sn, sta))
+
+        self.lock_sn_list.remove(sn)
+        if sta:
+            # update succ add sn in succ
+            if not sn in self.succ_sn_list:
+                self.succ_sn_list.append(sn)
+
     def scan_cb(self, ip, port, config, sn, normalsta):
         print("get once = {},{},{}-{},sn={}".format(ip, port, config['username'], config['password'], sn))
-        self.completed_num += 1
-        if self.completed_num == 4:
-            if self.scan:
-                asyncio.create_task(self.scan.stop_scan(True))
+
+        for savesn in self.succ_sn_list:
+            if savesn == sn:
+                print("sn={} has updated".format(sn))
+                return
+        for locks in self.lock_sn_list:
+            if locks == sn:
+                print("sn={} has locked".format(sn))
+                return
+
+        self.lock_sn_list.append(sn)
+        asyncio.create_task(artosyntools.update_firm(ip, port, config, testfile, self.update_cb))
 
 
 def getjson(file):
@@ -40,7 +60,7 @@ if __name__ == "__main__":
     ports = [22]
 
     timeout = 20
-    c = close_cb()
+    c = update_exec()
     ret = loop.run_until_complete(artosyntools.start_loop_scan(ips, ports, configs, timeout, callback=c.scan_cb))
     c.set_scan_obj(ret)
     # ret.debugflg = True
