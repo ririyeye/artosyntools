@@ -7,21 +7,27 @@ remotePath = '/tmp/artoupdate'
 
 
 async def rebootcmd_ssh(conn):
-    await execlines(
-        conn,
-        "#!/bin/sh \n "
-        "export LD_LIBRARY_PATH=/lib:/usr/lib:/local/lib:/local/usr/lib:$LD_LIBRARY_PATH \n"
-        "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/local/bin/:/local/usr/bin/:/local/usr/sbin:$PATH \n"
-        "mount /dev/mtdblock14 /local"
-        "cp /local/usr/bin/ar_wdt_service /tmp \n "
-        "/tmp/ar_wdt_service -t 1 & \n "
-        # "sleep 1  \n "
-        "devmem 0x606330b4 32 0x04912028 \n"
-        "echo 15 > /sys/class/gpio/export \n"
-        "echo \"out\" > /sys/class/gpio/gpio15/direction \n "
-        "echo 0 > /sys/class/gpio/gpio15/value \n"
-        "ps \n "
-        "killall ar_wdt_service \n ")
+    try:
+        async with asyncio.timeout(5):
+            await execlines(
+                conn,
+                "#!/bin/sh \n "
+                "export LD_LIBRARY_PATH=/lib:/usr/lib:/local/lib:/local/usr/lib:$LD_LIBRARY_PATH \n"
+                "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/local/bin/:/local/usr/bin/:/local/usr/sbin:$PATH \n"
+                "mount /dev/mtdblock14 /local"
+                "cp /local/usr/bin/ar_wdt_service /tmp \n "
+                "/tmp/ar_wdt_service -t 1 & \n "
+                # "sleep 1  \n "
+                "devmem 0x606330b4 32 0x04912028 \n"
+                "echo 15 > /sys/class/gpio/export \n"
+                "echo \"out\" > /sys/class/gpio/gpio15/direction \n "
+                "echo 0 > /sys/class/gpio/gpio15/value \n"
+                "ps \n "
+                "killall ar_wdt_service \n ")
+    except ConnectionAbortedError:
+        pass
+    except TimeoutError:
+        pass
 
 
 async def set_updateflg_and_reboot(conn: asyncssh.SSHClientConnection):
@@ -30,6 +36,7 @@ async def set_updateflg_and_reboot(conn: asyncssh.SSHClientConnection):
     await execlines(conn, "sync")
 
     print("reboot " + conn._host)
+
     await rebootcmd_ssh(conn)
 
 
@@ -54,12 +61,14 @@ async def upload_file(conn: asyncssh.SSHClientConnection, localfile: str, remote
 
     return await httpulfile(conn, localfile, remotefile)
 
-async def updatecmd(conn: asyncssh.SSHClientConnection,file:str):
+
+async def updatecmd(conn: asyncssh.SSHClientConnection, file: str):
     print(conn._host + " try update")
 
-    await execlines(conn, "artosyn_upgrade " + file, showlines=True)
+    await execlines_update(conn, "artosyn_upgrade " + file, showlines=True)
 
     print(conn._host + " update ok")
+
 
 async def _update_firm(ip, port, config, updatefile: str, callback=None):
     async with asyncssh.connect(host=ip,
@@ -73,10 +82,7 @@ async def _update_firm(ip, port, config, updatefile: str, callback=None):
         normalsta = await is_normal_sta(conn)
 
         if normalsta:
-            try:
-                await set_updateflg_and_reboot(conn)
-            except ConnectionAbortedError as e:
-                pass
+            await set_updateflg_and_reboot(conn)
             return sn, False
         else:
             ret = await upload_file(conn, updatefile, remotePath)
@@ -84,16 +90,13 @@ async def _update_firm(ip, port, config, updatefile: str, callback=None):
                 return sn, False
 
         await updatecmd(conn, remotePath)
+        await rebootcmd_ssh(conn)
 
         return sn, True
 
 
-
-
-
 async def update_firm(ip, port, config, updatefile: str, callback=None):
     sn, sta = await _update_firm(ip, port, config, updatefile)
-    if not sta:
-        if callback:
-            callback(ip, port, config, sn, sta)
-        return
+    if callback:
+        callback(ip, port, config, sn, sta)
+    return

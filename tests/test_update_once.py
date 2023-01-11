@@ -26,14 +26,13 @@ class update_exec(object):
     def scan_cb(self, ip, port, config, sn, normalsta):
         print("get once = {},{},{}-{},sn={}".format(ip, port, config['username'], config['password'], sn))
 
-        for savesn in self.succ_sn_list:
-            if savesn == sn:
-                print("sn={} has updated".format(sn))
-                return
-        for locks in self.lock_sn_list:
-            if locks == sn:
-                print("sn={} has locked".format(sn))
-                return
+        if sn in self.succ_sn_list:
+            print("sn={} has updated".format(sn))
+            return
+
+        if sn in self.lock_sn_list:
+            print("sn={} has locked".format(sn))
+            return
 
         self.lock_sn_list.append(sn)
         asyncio.create_task(artosyntools.update_firm(ip, port, config, testfile, self.update_cb))

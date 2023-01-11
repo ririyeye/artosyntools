@@ -3,3 +3,4 @@ __pycache__
 tests/cfg.json
 tests/*.img
 .vscode
+tests/1.txt

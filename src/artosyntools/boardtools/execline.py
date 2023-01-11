@@ -1,4 +1,5 @@
 import asyncssh, io
+import asyncio
 
 
 async def execlines(conn: asyncssh.SSHClientConnection, lines: str, showlines=False, usestderr=False) -> str:
@@ -11,16 +12,32 @@ async def execlines(conn: asyncssh.SSHClientConnection, lines: str, showlines=Fa
             async for line in process.stdout:
                 outline.write(line)
                 if showlines == True:
-                    print(line)
+                    print(line, end='')
 
             outstr = outline.getvalue()
             async for line in process.stderr:
                 if usestderr:
                     outline.write(line)
                 if showlines == True:
-                    print(line)
+                    print(line, end='')
 
             return outline.getvalue()
+
+
+async def execlines_update(conn: asyncssh.SSHClientConnection, lines: str, showlines=False, usestderr=False) -> str:
+    async with conn.create_process(lines) as process:
+
+        # asyncio.create_task(get_stderr(process))
+        with io.StringIO() as outline:
+            while not process.stdout.at_eof():
+                line = await process.stdout.readline()
+                outline.write(line)
+                if showlines == True:
+                    print(line, end='')
+
+            outstr = outline.getvalue()
+
+    return outstr
 
 
 async def getsn(conn: asyncssh.SSHClientConnection):
