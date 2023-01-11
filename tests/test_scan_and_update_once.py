@@ -1,9 +1,19 @@
 import asyncio, os
 import artosyntools
 import json
+import logging
+import asyncssh
 
-testfile = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
+use_rtos = False
 
+
+frim_file = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
+rtos_file = "tests/a7_rtos.nonsec.img"
+
+if use_rtos:
+    testfile = rtos_file
+else:
+    testfile = frim_file
 
 class update_exec(object):
 
@@ -24,7 +34,7 @@ class update_exec(object):
                 self.succ_sn_list.append(sn)
 
     def scan_cb(self, ip, port, config, sn, normalsta):
-        print("get once = {},{},{}-{},sn={}".format(ip, port, config['username'], config['password'], sn))
+        # print("get once = {},{},{}-{},sn={}".format(ip, port, config['username'], config['password'], sn))
 
         if sn in self.succ_sn_list:
             print("sn={} has updated".format(sn))
@@ -35,7 +45,10 @@ class update_exec(object):
             return
 
         self.lock_sn_list.append(sn)
-        asyncio.create_task(artosyntools.update_firm(ip, port, config, testfile, self.update_cb))
+        if use_rtos:
+            asyncio.create_task(artosyntools.update_rtos(ip, port, config, testfile, self.update_cb))
+        else:
+            asyncio.create_task(artosyntools.update_firm(ip, port, config, testfile, self.update_cb))
 
 
 def getjson(file):
@@ -44,6 +57,12 @@ def getjson(file):
 
 
 if __name__ == "__main__":
+    asyncssh.set_debug_level(3)
+    logging.basicConfig(level=logging.INFO,
+                        filename='./log.txt',
+                        filemode='w',
+                        datefmt='%a %d %b %Y %H:%M:%S',
+                        format='%(asctime)s %(filename)s %(levelname)s %(message)s')
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     ret = None

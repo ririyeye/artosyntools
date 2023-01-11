@@ -69,6 +69,12 @@ async def updatecmd(conn: asyncssh.SSHClientConnection, file: str):
 
     print(conn._host + " update ok")
 
+async def updatecmd_rtos(conn: asyncssh.SSHClientConnection, file: str):
+    print(conn._host + " try update")
+
+    await execlines_update(conn, "/etc/artosyn-upgrade.sh " + file, showlines=True)
+
+    print(conn._host + " update ok")
 
 async def _update_firm(ip, port, config, updatefile: str, callback=None):
     async with asyncssh.connect(host=ip,
@@ -97,6 +103,36 @@ async def _update_firm(ip, port, config, updatefile: str, callback=None):
 
 async def update_firm(ip, port, config, updatefile: str, callback=None):
     sn, sta = await _update_firm(ip, port, config, updatefile)
+    if callback:
+        callback(ip, port, config, sn, sta)
+    return
+
+async def _update_rtos(ip, port, config, updatefile: str, callback=None):
+    async with asyncssh.connect(host=ip,
+                                port=port,
+                                username=config['username'],
+                                password=config['password'],
+                                known_hosts=None,
+                                config=None,
+                                server_host_key_algs=['ssh-rsa']) as conn:
+        sn = await getsn(conn)
+        # normalsta = await is_normal_sta(conn)
+
+        rtosname = 'a7_rtos.nonsec.img'
+        
+        ret = await upload_file(conn, updatefile, rtosname)
+        if not ret:
+            return sn, False
+
+        await updatecmd_rtos(conn, rtosname)
+        await rebootcmd_ssh(conn)
+
+        return sn, True
+
+
+
+async def update_rtos(ip,port,config,updatefile:str,callback=None):
+    sn, sta = await _update_rtos(ip, port, config, updatefile)
     if callback:
         callback(ip, port, config, sn, sta)
     return

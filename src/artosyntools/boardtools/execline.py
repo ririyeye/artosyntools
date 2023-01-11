@@ -25,12 +25,15 @@ async def execlines(conn: asyncssh.SSHClientConnection, lines: str, showlines=Fa
 
 
 async def execlines_update(conn: asyncssh.SSHClientConnection, lines: str, showlines=False, usestderr=False) -> str:
-    async with conn.create_process(lines) as process:
-
-        # asyncio.create_task(get_stderr(process))
+    async with conn.create_process(
+            "#!/bin/sh \n "
+            "export LD_LIBRARY_PATH=/lib:/usr/lib:/local/lib:/local/usr/lib:$LD_LIBRARY_PATH \n"
+            "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/local/bin/:/local/usr/bin/:/local/usr/sbin:$PATH \n" + lines +
+            "\n",
+            bufsize=1000) as process:
         with io.StringIO() as outline:
             while not process.stdout.at_eof():
-                line = await process.stdout.readline()
+                line = await process.stdout.read(1024)
                 outline.write(line)
                 if showlines == True:
                     print(line, end='')
