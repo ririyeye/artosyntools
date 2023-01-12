@@ -4,8 +4,7 @@ import json
 import logging
 import asyncssh
 
-use_rtos = False
-
+use_rtos = True
 
 frim_file = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
 rtos_file = "tests/a7_rtos.nonsec.img"
@@ -14,6 +13,7 @@ if use_rtos:
     testfile = rtos_file
 else:
     testfile = frim_file
+
 
 class update_exec(object):
 
@@ -68,6 +68,14 @@ if __name__ == "__main__":
     ret = None
 
     js = getjson('tests/cfg.json')
+
+    loop.run_until_complete(
+        artosyntools.ftp_dl_file(host=js['ftp']['ip'],
+                                 cwd=js['ftp']['workpath'],
+                                 usr=js['ftp']['usr'],
+                                 password=js['ftp']['pw'],
+                                 filename=os.path.basename(testfile),
+                                 localfile=testfile))
 
     configs = artosyntools.get_user_pass(js)
 

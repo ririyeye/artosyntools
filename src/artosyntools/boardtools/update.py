@@ -65,7 +65,8 @@ async def upload_file(conn: asyncssh.SSHClientConnection, localfile: str, remote
 async def updatecmd(conn: asyncssh.SSHClientConnection, file: str):
     print(conn._host + " try update")
 
-    await execlines_update(conn, "artosyn_upgrade " + file, showlines=True)
+    # 这个库和artosyn_upgrade 有冲突 无法实时显示数据
+    await execlines_update(conn, "artosyn_upgrade " + file, showlines=False)
 
     print(conn._host + " update ok")
 
