@@ -3,8 +3,6 @@ from .execline import *
 from .scpul import *
 from .httpul import *
 
-remotePath = '/tmp/artoupdate'
-
 
 async def rebootcmd_ssh(conn):
     try:
@@ -50,8 +48,6 @@ async def if_scp_ok(conn: asyncssh.SSHClientConnection):
 
     return True
 
-    # return await execlines(conn, "echo $PATH")
-
 
 async def upload_file(conn: asyncssh.SSHClientConnection, localfile: str, remotefile: str):
     # 首选scp
@@ -65,19 +61,25 @@ async def upload_file(conn: asyncssh.SSHClientConnection, localfile: str, remote
 async def updatecmd(conn: asyncssh.SSHClientConnection, file: str):
     print(conn._host + " try update")
 
-    # 这个库和artosyn_upgrade 有冲突 无法实时显示数据
-    await execlines_update(conn, "artosyn_upgrade " + file, showlines=False)
+    # 这个库和artosyn_upgrade 有冲突 无法实时显示升级数据
+    cmd = "artosyn_upgrade {}".format(file)
+
+    await execlines_update(conn, cmd, showlines=False)
 
     print(conn._host + " update ok")
+
 
 async def updatecmd_rtos(conn: asyncssh.SSHClientConnection, file: str):
     print(conn._host + " try update")
 
-    await execlines_update(conn, "/etc/artosyn-upgrade.sh " + file, showlines=True)
+    cmd = "/etc/artosyn-upgrade.sh {}".format(file)
+
+    await execlines_update(conn, cmd, showlines=True)
 
     print(conn._host + " update ok")
 
-async def _update_firm(ip, port, config, updatefile: str, callback=None):
+
+async def _update_firm(ip, port, config, updatefile: str):
     async with asyncssh.connect(host=ip,
                                 port=port,
                                 username=config['username'],
@@ -88,27 +90,30 @@ async def _update_firm(ip, port, config, updatefile: str, callback=None):
         sn = await getsn(conn)
         normalsta = await is_normal_sta(conn)
 
+        # 先要转换到update 模式才能升级
         if normalsta:
             await set_updateflg_and_reboot(conn)
             return sn, False
-        else:
-            ret = await upload_file(conn, updatefile, remotePath)
-            if not ret:
-                return sn, False
 
-        await updatecmd(conn, remotePath)
+        firm_remotePath = '/tmp/artosyn-upgrade-sirius-0.0.0.1.img'
+
+        ret = await upload_file(conn, updatefile, firm_remotePath)
+        if not ret:
+            return sn, False
+
+        await updatecmd(conn, firm_remotePath)
         await rebootcmd_ssh(conn)
 
         return sn, True
 
 
-async def update_firm(ip, port, config, updatefile: str, callback=None):
+async def update_firm(ip, port, config, updatefile: str, update_callback=None):
     sn, sta = await _update_firm(ip, port, config, updatefile)
-    if callback:
-        callback(ip, port, config, sn, sta)
-    return
+    if update_callback:
+        update_callback(ip, port, config, sn, sta)
 
-async def _update_rtos(ip, port, config, updatefile: str, callback=None):
+
+async def _update_rtos(ip, port, config, updatefile: str):
     async with asyncssh.connect(host=ip,
                                 port=port,
                                 username=config['username'],
@@ -117,10 +122,9 @@ async def _update_rtos(ip, port, config, updatefile: str, callback=None):
                                 config=None,
                                 server_host_key_algs=['ssh-rsa']) as conn:
         sn = await getsn(conn)
-        # normalsta = await is_normal_sta(conn)
 
-        rtosname = 'a7_rtos.nonsec.img'
-        
+        rtosname = '/tmp/a7_rtos.nonsec.img'
+
         ret = await upload_file(conn, updatefile, rtosname)
         if not ret:
             return sn, False
@@ -131,9 +135,7 @@ async def _update_rtos(ip, port, config, updatefile: str, callback=None):
         return sn, True
 
 
-
-async def update_rtos(ip,port,config,updatefile:str,callback=None):
+async def update_rtos(ip, port, config, updatefile: str, update_callback=None):
     sn, sta = await _update_rtos(ip, port, config, updatefile)
-    if callback:
-        callback(ip, port, config, sn, sta)
-    return
+    if update_callback:
+        update_callback(ip, port, config, sn, sta)

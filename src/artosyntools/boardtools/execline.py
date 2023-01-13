@@ -29,8 +29,7 @@ async def execlines_update(conn: asyncssh.SSHClientConnection, lines: str, showl
             "#!/bin/sh \n "
             "export LD_LIBRARY_PATH=/lib:/usr/lib:/local/lib:/local/usr/lib:$LD_LIBRARY_PATH \n"
             "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/local/bin/:/local/usr/bin/:/local/usr/sbin:$PATH \n" + lines +
-            "\n",
-            bufsize=1000) as process:
+            "\n") as process:
         with io.StringIO() as outline:
             while not process.stdout.at_eof():
                 line = await process.stdout.read(1024)
@@ -50,14 +49,9 @@ async def getsn(conn: asyncssh.SSHClientConnection):
 async def is_normal_sta(conn: asyncssh.SSHClientConnection):
     testcmd = ["ps | grep p301d | grep -v grep | wc -l", "ps | grep \"run.sh nor mtdblock15\" | grep -v grep | wc -l"]
 
-    rets = []
     for cmd in testcmd:
         ps = await execlines(conn, cmd)
         retcode = int(ps[0].strip('\n'))
-        rets.append(retcode)
-
-    for ret in rets:
-        if ret == 1:
+        if retcode == 1:
             return True
-
     return False
