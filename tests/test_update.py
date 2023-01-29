@@ -7,13 +7,13 @@ import asyncssh
 use_rtos = False
 
 
-frim_file = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
+firm_file = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
 rtos_file = "tests/a7_rtos.nonsec.img"
 
 if use_rtos:
     testfile = rtos_file
 else:
-    testfile = frim_file
+    testfile = firm_file
 
 class update_exec(object):
 

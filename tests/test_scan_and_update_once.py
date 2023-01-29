@@ -6,13 +6,13 @@ import asyncssh
 
 use_rtos = True
 
-frim_file = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
+firm_file = "tests/artosyn-upgrade-sirius-0.0.0.1.img"
 rtos_file = "tests/a7_rtos.nonsec.img"
 
 if use_rtos:
     testfile = rtos_file
 else:
-    testfile = frim_file
+    testfile = firm_file
 
 
 class update_exec(object):
@@ -82,8 +82,6 @@ if __name__ == "__main__":
     ips = ["192.168.10.{}".format(i) for i in range(1, 255)]
     ips += ["192.168.1.{}".format(i) for i in range(1, 255)]
     ports = [22, 80, 443, 8080]
-
-    ports = [22]
 
     timeout = 20
     c = update_exec()
